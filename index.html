@@ -594,6 +594,17 @@
   #home-photo{object-fit:cover}
   #home-photo-wrap::before{display:none}
   #home-overlay{display:none}
+  /* 🌟 つき版: 夜のホームだけ、夜空(画面の上半分)に星がきらきらまたたく。並べるのは buildHomeStars() */
+  #home-stars{position:absolute;inset:0;display:none;pointer-events:none;overflow:hidden}
+  #home.photo.t-night #home-stars{display:block}
+  #home-stars i{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);border-radius:50%;
+    background:#fff6dc;box-shadow:0 0 4px 1px rgba(255,232,170,.75);opacity:.2;animation:homeTwinkle var(--d) ease-in-out var(--dl) infinite}
+  #home-stars i.big{background:radial-gradient(circle,#fffbea 0 35%,rgba(255,236,180,0) 70%);box-shadow:0 0 8px 2px rgba(255,226,150,.55)}
+  #home-stars i.big::before,#home-stars i.big::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:1px}
+  #home-stars i.big::before{width:calc(var(--s) * 4);height:1.5px;background:linear-gradient(90deg,rgba(255,240,200,0),#fff8e4,rgba(255,240,200,0))}
+  #home-stars i.big::after{width:1.5px;height:calc(var(--s) * 4);background:linear-gradient(180deg,rgba(255,240,200,0),#fff8e4,rgba(255,240,200,0))}
+  @keyframes homeTwinkle{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1.1)}}
+  @media (prefers-reduced-motion:reduce){#home-stars i{animation:none;opacity:.75;transform:none}}
   /* 🎮 ドット絵ホーム(px): 部屋240x320を全幅・下寄せ(写真と同じ流儀)。にじまないカクカク表示 */
   #home-px{display:none;position:absolute;left:0;right:0;bottom:0;height:133.34vw}
   #home-px img{image-rendering:pixelated}
@@ -940,6 +951,7 @@
   <div id="home-bg">
     <div id="home-photo-wrap">
       <img id="home-photo" alt="">
+      <div id="home-stars" aria-hidden="true"></div>   <!-- 🌟 つき版: 夜空のきらきら(中身は buildHomeStars が入れる) -->
       <!-- 🎨 写真に重ねる小物レイヤー(viewBoxは写真と同じ1066x1422・座標=写真のピクセル) -->
       <svg id="home-overlay" viewBox="0 0 1066 1422" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -3615,6 +3627,25 @@ function homeTimeBand(){
   if(h >= HOME_TIME.duskStart) return "dusk";
   return "day";
 }
+// 🌟 つき版: 夜のホームの夜空に星を60こ並べる(小さな光のつぶ50こ＋十字のきらめき10こ)。
+//    場所は空の部分だけ=横15〜98%・縦3〜46%(左上の葉っぱと、下の町・ふたりの上は避ける)。光るタイミングと速さは星ごとにバラバラ
+const HOME_STARS_SMALL = 50, HOME_STARS_BIG = 10;
+function buildHomeStars(){
+  const box = document.getElementById("home-stars"); if(!box || box.childElementCount) return;   // ※ここは $ が用意される前に動くので getElementById を直接使う
+  const rnd = (a, b)=> a + Math.random() * (b - a);
+  for(let i = 0; i < HOME_STARS_SMALL + HOME_STARS_BIG; i++){
+    const big = i >= HOME_STARS_SMALL;
+    const s = document.createElement("i");
+    if(big) s.className = "big";
+    s.style.left = rnd(15, 98).toFixed(1) + "%";
+    s.style.top  = rnd(3, 46).toFixed(1) + "%";
+    s.style.setProperty("--s",  (big ? rnd(4, 6) : rnd(1.5, 3.2)).toFixed(1) + "px");
+    s.style.setProperty("--d",  rnd(big ? 3 : 2, big ? 5.5 : 4.5).toFixed(2) + "s");
+    s.style.setProperty("--dl", (-rnd(0, 5)).toFixed(2) + "s");   // マイナス=最初からバラバラの段階で光り始める
+    box.appendChild(s);
+  }
+}
+buildHomeStars();
 function applyHomeScene(){       // 今の時刻・月・日付に合わせて部屋の演出を切り替える
   const home = $("home"); if(!home) return;
   const now = new Date(), m = now.getMonth()+1, d = now.getDate();
